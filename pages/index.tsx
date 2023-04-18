@@ -1,124 +1,201 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import { Card, Suit, Value } from "@/components/Card";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-const inter = Inter({ subsets: ['latin'] })
+import { GameDoneBox } from "@/components/GameDoneBox";
+import { GetStaticProps } from "next";
 
-export default function Home() {
+type CardType = { value: Value; suit: Suit };
+type HomeProps = { allCards: CardType[] };
+
+enum GameState {
+  PlayerDrawing = 0,
+  DealerDrawing,
+  WaitingForDealer,
+  Done,
+}
+
+function draw(deck: CardType[]): [CardType, CardType[]] {
+  const i = Math.floor(deck.length * Math.random());
+  const drawn = deck[i];
+  const cardsLeft = deck.filter((card) => card !== drawn);
+  return [drawn, cardsLeft];
+}
+
+function checkBlackJack(card1: CardType, card2: CardType): boolean {
+  return calcHandValue([card1, card2]) === 21;
+}
+
+function calcHandValue(
+  cards: CardType[],
+  start?: number,
+  tally?: number
+): number {
+  start = start ?? 0;
+  tally = tally ?? 0;
+  if (start === cards.length) {
+    return tally;
+  }
+  switch (cards[start].value) {
+    case Value.Ace:
+      const as1 = calcHandValue(cards, start + 1, tally + 1);
+      const as11 = calcHandValue(cards, start + 1, tally + 11);
+      if (as1 <= 21 && as11 <= 21) return Math.max(as1, as11);
+      else return Math.min(as1, as11);
+    case Value.Two:
+      return calcHandValue(cards, start + 1, tally + 2);
+    case Value.Three:
+      return calcHandValue(cards, start + 1, tally + 3);
+    case Value.Four:
+      return calcHandValue(cards, start + 1, tally + 4);
+    case Value.Five:
+      return calcHandValue(cards, start + 1, tally + 5);
+    case Value.Six:
+      return calcHandValue(cards, start + 1, tally + 6);
+    case Value.Seven:
+      return calcHandValue(cards, start + 1, tally + 7);
+    case Value.Eight:
+      return calcHandValue(cards, start + 1, tally + 8);
+    case Value.Nine:
+      return calcHandValue(cards, start + 1, tally + 9);
+    default:
+      return calcHandValue(cards, start + 1, tally + 10);
+  }
+}
+
+export default function Home(props: HomeProps) {
+  const [gameState, setGameState] = useState<GameState>(
+    GameState.PlayerDrawing
+  );
+
+  const [playerCards, setPlayerCards] = useState<CardType[]>([]);
+  const [dealerCards, setDealerCards] = useState<CardType[]>([]);
+  const [availableCards, setAvailableCards] = useState<CardType[]>([]);
+
+  const playerHandValue = useMemo(
+    () => calcHandValue(playerCards),
+    [playerCards]
+  );
+  const dealerHandValue = useMemo(
+    () => calcHandValue(dealerCards),
+    [dealerCards]
+  );
+
+  const drawPlayerCard = () => {
+    if (availableCards.length !== 0 && gameState === GameState.PlayerDrawing) {
+      const [drawn, cardsLeft] = draw(availableCards);
+      setPlayerCards([...playerCards, drawn]);
+      setAvailableCards(cardsLeft);
+    }
+  };
+
+  const startDealerDraw = () => {
+    if (gameState === GameState.PlayerDrawing)
+      setGameState(GameState.DealerDrawing);
+  };
+
+  const resetCards = useCallback(() => {
+    setGameState(GameState.PlayerDrawing);
+    const [drawn1, cardsLeft1] = draw(props.allCards);
+    const [drawn2, cardsLeft2] = draw(cardsLeft1);
+    const [drawnDealer1, cardsLeft3] = draw(cardsLeft2);
+    const [drawnDealer2, cardsLeft] = draw(cardsLeft3);
+    setPlayerCards([drawn1, drawn2]);
+    setDealerCards([drawnDealer1, drawnDealer2]);
+    setAvailableCards(cardsLeft);
+    if (
+      checkBlackJack(drawn1, drawn2) ||
+      checkBlackJack(drawnDealer1, drawnDealer2)
+    )
+      setGameState(GameState.Done);
+  }, [props.allCards]);
+
+  useEffect(() => {
+    resetCards();
+  }, [resetCards]);
+
+  useEffect(() => {
+    if (gameState === GameState.PlayerDrawing) {
+      if (playerHandValue > 21) {
+        setGameState(GameState.Done);
+      } else if (playerHandValue === 21) {
+        setGameState(GameState.DealerDrawing);
+      }
+    } else if (gameState === GameState.DealerDrawing) {
+      if (availableCards.length !== 0 && dealerHandValue < 17) {
+        setTimeout(() => {
+          const [drawn, cardsLeft] = draw(availableCards);
+          setDealerCards([...dealerCards, drawn]);
+          setAvailableCards(cardsLeft);
+          setGameState(GameState.DealerDrawing);
+        }, 1000);
+        setGameState(GameState.WaitingForDealer);
+      } else {
+        setGameState(GameState.Done);
+      }
+    }
+  }, [
+    gameState,
+    dealerCards,
+    availableCards,
+    playerHandValue,
+    dealerHandValue,
+  ]);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <main className="flex h-screen">
+      <div className="relative m-auto flex flex-col gap-20 items-center ">
+        <div className="flex flex-row gap-5">
+          {dealerCards.map((card, i) => (
+            <Card
+              key={i}
+              value={
+                gameState !== GameState.PlayerDrawing || i === 0
+                  ? card.value
+                  : undefined
+              }
+              suit={
+                gameState !== GameState.PlayerDrawing || i === 0
+                  ? card.suit
+                  : undefined
+              }
+              flipped={true}
+              onClick={startDealerDraw}
             />
-          </a>
+          ))}
         </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+        <div className="flex flex-row gap-5">
+          {playerCards.map((card, i) => (
+            <Card
+              key={i}
+              value={card.value}
+              suit={card.suit}
+              flipped={false}
+              onClick={drawPlayerCard}
+            />
+          ))}
+        </div>
+        {gameState === GameState.Done && (
+          <GameDoneBox
+            playerHandValue={playerHandValue}
+            dealerHandValue={dealerHandValue}
+            onClick={resetCards}
+          />
+        )}
       </div>
     </main>
-  )
+  );
 }
+
+export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+  const values = Object.values(Value);
+  const suits = Object.values(Suit);
+  return {
+    props: {
+      allCards: values.flatMap((v) =>
+        suits.map((s) => {
+          return { value: v, suit: s };
+        })
+      ),
+    },
+  };
+};
