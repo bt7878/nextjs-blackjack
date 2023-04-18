@@ -53,7 +53,13 @@ export function Card(props: CardProps) {
             fill={true}
           />
         ) : (
-          <Image src="1B.svg" alt="1B" fill={true} />
+          <Image
+            src="1B.svg"
+            alt="1B"
+            fill={true}
+            placeholder="blur"
+            blurDataURL="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="
+          />
         )}
       </div>
     </div>
