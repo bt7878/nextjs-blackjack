@@ -1,6 +1,7 @@
 import { Card, Suit, Value } from "@/components/Card";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { Game } from "@/types/Game";
 import { GameDoneBox } from "@/components/GameDoneBox";
 import { GetStaticProps } from "next";
 
@@ -23,6 +24,11 @@ function draw(deck: CardType[]): [CardType, CardType[]] {
 
 function checkBlackJack(card1: CardType, card2: CardType): boolean {
   return calcHandValue([card1, card2]) === 21;
+}
+
+function calcWin(player: number, dealer: number): boolean {
+  if (player > 21 || (dealer <= 21 && dealer >= player)) return false;
+  else return true;
 }
 
 function calcHandValue(
@@ -132,6 +138,19 @@ export default function Home(props: HomeProps) {
       } else {
         setGameState(GameState.Done);
       }
+    } else if (gameState === GameState.Done) {
+      const body: Game = {
+        win: calcWin(playerHandValue, dealerHandValue),
+        playerHandTotal: playerHandValue,
+        dealerHandTotal: dealerHandValue,
+      };
+      fetch("/api/game", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }).catch(console.error);
     }
   }, [
     gameState,
