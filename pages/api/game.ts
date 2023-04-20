@@ -1,7 +1,7 @@
 import { Game, GameRecord } from "@/types/Game";
-import { Int32, Timestamp } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
 
+import { Int32 } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import requestIp from "request-ip";
 
