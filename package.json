@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "docker-build": "docker build -t nextjs-blackjack .",
-    "docker-start": "docker run -p 3000:3000 nextjs-blackjack"
+    "docker-start": "docker run -p 3000:3000 --env-file .env.local nextjs-blackjack"
   },
   "dependencies": {
     "@types/node": "18.15.11",
