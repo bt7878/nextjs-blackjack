@@ -1,14 +1,13 @@
-import { Int32 } from "mongodb";
+import { z } from "zod";
 
-export type Game = {
-  win: boolean;
-  playerHandTotal: number;
-  dealerHandTotal: number;
-};
+export const gameSchema = z.object({
+  win: z.boolean(),
+  playerHandTotal: z.number().int(),
+  dealerHandTotal: z.number().int(),
+});
 
-export type GameRecord = {
+export type Game = z.infer<typeof gameSchema>;
+
+export interface GameRecord extends Game {
   ip: string;
-  win: boolean;
-  playerHandTotal: Int32;
-  dealerHandTotal: Int32;
-};
+}
