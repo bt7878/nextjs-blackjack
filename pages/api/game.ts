@@ -23,7 +23,7 @@ export default async function handler(
     const ip = requestIp.getClientIp(req);
     const body = gameSchema.safeParse(req.body);
     if (!body.success || ip === null) {
-      return res.status(400);
+      return res.status(400).send("Bad Request");
     }
 
     const dbClient = await clientPromise;
@@ -39,6 +39,6 @@ export default async function handler(
 
     return res.status(201).json({ id: added.insertedId.toString() });
   } else {
-    return res.status(400);
+    return res.status(400).send("Bad Request");
   }
 }
